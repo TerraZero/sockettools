@@ -1,4 +1,4 @@
-export default class Cookie {
+module.exports = class Cookie {
 
   static set(name, value, minutes) {
     var path = arguments.length <= 3 || arguments[3] === undefined ? "/" : arguments[3];

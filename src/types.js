@@ -17,10 +17,3 @@
  * @property {object} data
  * @property {number} status
  */
-
-/**
- * @typedef T_SocketRequestInstance
- * @property {import('./Request').default} requestdata
- * @property {function} resolve
- * @property {function} reject
- */

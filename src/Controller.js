@@ -1,10 +1,10 @@
-import Status from './Status';
-import Response from './Response';
+const Status = require('./Status');
+const Response = require('./Response');
 
-export default class Controller {
+module.exports = class Controller {
 
   /**
-   * @param {import('./Server').default} server
+   * @param {import('./Server')} server
    */
   constructor(server) {
     this._server = server;
@@ -14,7 +14,7 @@ export default class Controller {
   }
 
   /**
-   * @returns {import('./Server').default}
+   * @returns {import('./Server')}
    */
   get server() {
     return this._server;
@@ -33,22 +33,22 @@ export default class Controller {
   }
 
   /**
-   * @param {import('./Request').default} request
+   * @param {import('./Request')} request
    */
   hasHandle(request) {
     return this._handles[request.route] !== undefined;
   }
 
   /**
-   * @param {import('./Request').default} request
+   * @param {import('./Request')} request
    */
   async execute(request) {
     const data = await this._handles[request.route].call(this, request);
 
-    if (data instanceof Response) {
-      request.socket.sendResponse(data);
-    } else if (data === undefined) {
+    if (data === undefined) {
       request.socket.response(request, {}, Status.RESPONSE_OK | Status.RESPONSE_EMPTY);
+    } else if (data instanceof Response) {
+      request.socket.sendResponse(data);
     } else {
       request.socket.response(request, data);
     }

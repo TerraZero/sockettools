@@ -1,10 +1,10 @@
-import Status from './Status';
+const Status = require('./Status');
 
-export default class Response {
+module.exports = class Response {
 
   /**
-   * @param {import('./Socket').default} socket
-   * @param {import('./Request').default} request
+   * @param {import('./Socket')} socket
+   * @param {import('./Request')} request
    * @param {object} data
    * @param {number} status
    * @returns {Response}
@@ -18,7 +18,7 @@ export default class Response {
   }
 
   /**
-   * @param {import('./Socket').default} socket
+   * @param {import('./Socket')} socket
    * @param {T_SocketResponse} responsedata
    */
   constructor(socket, responsedata) {
@@ -27,7 +27,7 @@ export default class Response {
   }
 
   /**
-   * @returns {import('./Socket').default}
+   * @returns {import('./Socket')}
    */
   get socket() {
     return this._socket;
@@ -59,6 +59,14 @@ export default class Response {
    */
   get status() {
     return this.responsedata.status;
+  }
+
+  isOK() {
+    return Status.isStatus(this.status, Status.RESPONSE_OK);
+  }
+
+  isError() {
+    return Status.isStatus(this.status, Status.RESPONSE_ERROR);
   }
 
 }

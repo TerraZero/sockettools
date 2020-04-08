@@ -1,17 +1,27 @@
-import Request from './Request';
-import Response from './Response';
+/**
+ * @typedef T_SocketRequestInstance
+ * @property {import('./Request')} requestdata
+ * @property {number} timeout
+ * @property {function} resolve
+ * @property {function} reject
+ */
 
-export default class Socket {
+const Request = require('./Request');
+const Response = require('./Response');
+const Status = require('./Status');
+
+module.exports = class Socket {
 
   /**
-   * @param {import('./Server').default} server
+   * @param {import('./Server')} server
    * @param {import('socket.io').Socket} realsocket
+   * @param {string} type
    * @param {string} uuid
    */
-  constructor(server, realsocket, uuid = null) {
+  constructor(server, realsocket, type, uuid = null) {
     this._server = server;
     this._realsocket = realsocket;
-    this._meta = {};
+    this._meta = { type };
     this._requests = {};
     this._components = {};
 
@@ -20,7 +30,7 @@ export default class Socket {
   }
 
   /**
-   * @returns {import('./Server').default}
+   * @returns {import('./Server')}
    */
   get server() {
     return this._server;
@@ -76,14 +86,14 @@ export default class Socket {
     this.realsocket.on('uuid', this.doUUID.bind(this));
 
     if (this.uuid !== null) {
-      this.realsocket.emit('uuid', this.uuid);
+      this.realsocket.emit('uuid', { uuid: this.uuid, type: this.meta.type });
     }
   }
 
   /**
    * @param {string} route
    * @param {Object} params
-   * @returns {Promise<import('./Response').default>}
+   * @returns {Promise<import('./Response')>}
    */
   request(route, params = {}) {
     const request = Request.create(this, route, params);
@@ -92,29 +102,33 @@ export default class Socket {
   }
 
   /**
-   * @param {import('./Request').default} request
-   * @returns {Promise<import('./Response').default>}
+   * @param {import('./Request')} request
+   * @returns {Promise<import('./Response')>}
    */
   sendRequest(request) {
     return new Promise((resolve, reject) => {
-      this.requests[request.uuid] = { request, resolve, reject };
+      this.requests[request.uuid] = { request, resolve, reject, timeout: null };
+      if (this.server.options.timeout !== 0) {
+        this.requests[request.uuid].timeout = setTimeout(this.doTimeout.bind(this.requests[request.uuid]), this.server.options.timeout);
+      }
       this.realsocket.emit('request', request.requestdata);
     });
   }
 
   /**
-   * @param {import('./Request').default} request
+   * @param {import('./Request')} request
    * @param {object} data
+   * @param {number} status
    */
-  response(request, data) {
-    const response = Response.create(this, request, data);
+  response(request, data, status = Status.RESPONSE_OK) {
+    const response = Response.create(this, request, data, status);
 
     this.sendResponse(response);
   }
 
   /**
    *
-   * @param {import('./Response').default} response
+   * @param {import('./Response')} response
    */
   sendResponse(response) {
     this.realsocket.emit('response', response.responsedata);
@@ -123,7 +137,7 @@ export default class Socket {
   /**
    * @param {string} uuid
    */
-  doUUID(uuid) {
+  doUUID({ uuid, type }) {
     let meta = {};
     if (this.server.sockets[uuid] !== undefined) {
       meta = this.server.sockets[uuid].meta;
@@ -131,6 +145,7 @@ export default class Socket {
     delete this.server.sockets[uuid];
     this._meta = meta;
     this.uuid = uuid;
+    this.meta.type = type;
     this.server.sockets[this.uuid] = this;
   }
 
@@ -140,7 +155,7 @@ export default class Socket {
   doRequest(requestdata) {
     const request = new Request(this, requestdata);
 
-    this.server.handle(request);
+    this.server.handle(request).catch((e) => { });
   }
 
   /**
@@ -150,9 +165,16 @@ export default class Socket {
     const response = new Response(this, responsedata);
 
     if (this.requests[response.requestdata.uuid] !== undefined) {
+      if (this.requests[response.requestdata.uuid].timeout !== null) {
+        clearTimeout(this.requests[response.requestdata.uuid].timeout);
+      }
       this.requests[response.requestdata.uuid].resolve(response);
       delete this.requests[response.requestdata.uuid];
     }
+  }
+
+  doTimeout() {
+    this.resolve(Response.create(this.request.socket, this.request, {}, Status.RESPONSE_ERROR | Status.RESPONSE_TIMEOUT));
   }
 
 }

@@ -1,9 +1,9 @@
-import { v4 as UUID } from 'uuid';
+const UUID = require('uuid').v4;
 
-export default class Request {
+module.exports = class Request {
 
   /**
-   * @param {import('./Socket').default} socket
+   * @param {import('./Socket')} socket
    * @param {string} route
    * @param {object} params
    */
@@ -17,7 +17,7 @@ export default class Request {
   }
 
   /**
-   * @param {import('./Socket').default} socket
+   * @param {import('./Socket')} socket
    * @param {T_SocketRequest} requestdata
    */
   constructor(socket, requestdata) {
@@ -26,7 +26,7 @@ export default class Request {
   }
 
   /**
-   * @returns {import('./Socket').default}
+   * @returns {import('./Socket')}
    */
   get socket() {
     return this._socket;
