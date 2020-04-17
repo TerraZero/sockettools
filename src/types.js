@@ -1,6 +1,7 @@
 /**
  * @typedef T_SocketMeta
  * @property {string} uuid
+ * @property {string} type
  */
 
 /**

@@ -6,6 +6,8 @@
  * @property {function} reject
  */
 
+const EventEmitter = require('events');
+
 const Request = require('./Request');
 const Response = require('./Response');
 const Status = require('./Status');
@@ -21,9 +23,10 @@ module.exports = class Socket {
   constructor(server, realsocket, type, uuid = null) {
     this._server = server;
     this._realsocket = realsocket;
-    this._meta = { type };
+    this._meta = { type, uuid: null };
     this._requests = {};
     this._components = {};
+    this._events = new EventEmitter();
 
     this.uuid = uuid;
     this.init();
@@ -75,6 +78,13 @@ module.exports = class Socket {
     return this._components;
   }
 
+  /**
+   * @returns {import('events').EventEmitter}
+   */
+  get events() {
+    return this._events;
+  }
+
   register(name, component) {
     this._components[name] = component;
     return this;
@@ -84,10 +94,15 @@ module.exports = class Socket {
     this.realsocket.on('request', this.doRequest.bind(this));
     this.realsocket.on('response', this.doResponse.bind(this));
     this.realsocket.on('uuid', this.doUUID.bind(this));
+    this.realsocket.on('event', this.doEvent.bind(this));
 
     if (this.uuid !== null) {
       this.realsocket.emit('uuid', { uuid: this.uuid, type: this.meta.type });
     }
+  }
+
+  trigger(event, params) {
+    this.realsocket.emit('server.event', { event, params, sender: this.uuid });
   }
 
   /**
@@ -147,6 +162,7 @@ module.exports = class Socket {
     this.uuid = uuid;
     this.meta.type = type;
     this.server.sockets[this.uuid] = this;
+    this.server.doServerEvent('socket.connect', { meta: this.meta }, this);
   }
 
   /**
@@ -175,6 +191,10 @@ module.exports = class Socket {
 
   doTimeout() {
     this.resolve(Response.create(this.request.socket, this.request, {}, Status.RESPONSE_ERROR | Status.RESPONSE_TIMEOUT));
+  }
+
+  doEvent({ event, sender, params }) {
+    this.events.emit(event, sender, params);
   }
 
 }

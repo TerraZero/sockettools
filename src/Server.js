@@ -49,6 +49,21 @@ module.exports = class Server {
   }
 
   /**
+   * @param {string} type
+   * @returns {object<string, import('./Socket')>}
+   */
+  getSockets(type) {
+    const sockets = {};
+
+    for (const uuid in this.sockets) {
+      if (this.sockets[uuid].meta.type === type) {
+        sockets[uuid] = this.sockets[uuid];
+      }
+    }
+    return sockets;
+  }
+
+  /**
    *
    * @param {import('./Controller')} controller
    */
@@ -71,7 +86,7 @@ module.exports = class Server {
   }
 
   /**
-   * @param {import('./Socket')[]} sockets
+   * @param {object<string, import('./Socket')>} sockets
    * @param {string} route
    * @param {Object} params
    * @returns {Promise<import('./Response')>[]}
@@ -87,6 +102,18 @@ module.exports = class Server {
   }
 
   /**
+   * @param {string} event
+   * @param {object} params
+   * @param {import('./Socket')} socket
+   */
+  doServerEvent(event, params, socket = null) {
+    if (socket !== null) {
+      socket.events.emit(event, { event, params, sender: socket.uuid });
+    }
+    this.realsocket.emit('event', { event, params, sender: socket.uuid });
+  }
+
+  /**
    * @param {import('socket.io').Server} server
    * @returns {this}
    */
@@ -95,9 +122,14 @@ module.exports = class Server {
     this.realsocket.on('connection', (realsocket) => {
       const socket = new Socket(this, realsocket);
 
+      realsocket.on('server.event', ({ event, params }) => {
+        this.doServerEvent(event, params, socket);
+      });
+
       realsocket.on('disconnect', () => {
         if (socket.uuid !== null) {
           delete this.sockets[socket.uuid];
+          this.doServerEvent('socket.disconnect', {}, socket);
         }
       });
     });
