@@ -154,7 +154,7 @@ module.exports = class Server {
   }
 
   getSiteHash() {
-    if (window && window.location) {
+    if (typeof window !== 'undefined' && window.location) {
       return this.getHash(window.location.href);
     }
     return 0;
