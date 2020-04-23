@@ -150,7 +150,27 @@ module.exports = class Server {
       }
       Cookie.set('pencl', uuid);
     }
-    return new Socket(this, client, type, uuid);
+    return new Socket(this, client, type, uuid + '-' + this.getSiteHash());
+  }
+
+  getSiteHash() {
+    if (window && window.location) {
+      return this.getHash(window.location.href);
+    }
+    return 0;
+  }
+
+  getHash(string) {
+    let hash = 0;
+    if (string.length == 0) {
+      return hash;
+    }
+    for (let i = 0; i < string.length; i++) {
+      const char = string.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash;
   }
 
 }
