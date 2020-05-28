@@ -43,14 +43,18 @@ module.exports = class Controller {
    * @param {import('./Request')} request
    */
   async execute(request) {
-    const data = await this._handles[request.route].call(this, request);
+    try {
+      const data = await this._handles[request.route].call(this, request);
 
-    if (data === undefined) {
-      request.socket.response(request, {}, Status.RESPONSE_OK | Status.RESPONSE_EMPTY);
-    } else if (data instanceof Response) {
-      request.socket.sendResponse(data);
-    } else {
-      request.socket.response(request, data);
+      if (data === undefined) {
+        request.socket.response(request, {}, Status.RESPONSE_OK | Status.RESPONSE_EMPTY);
+      } else if (data instanceof Response) {
+        request.socket.sendResponse(data);
+      } else {
+        request.socket.response(request, data);
+      }
+    } catch (error) {
+      request.socket.response(request, { error }, Status.RESPONSE_ERROR);
     }
   }
 
