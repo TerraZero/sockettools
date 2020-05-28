@@ -54,7 +54,7 @@ module.exports = class Controller {
         request.socket.response(request, data);
       }
     } catch (error) {
-      request.socket.response(request, { error }, Status.RESPONSE_ERROR);
+      request.socket.response(request, { error: error.message }, Status.RESPONSE_ERROR);
     }
   }
 
